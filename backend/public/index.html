@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BlendGO! — Aprendé modelado 3D con IA</title>
+  <meta name="description" content="App educativa y gamificada para aprender Traslación, Rotación y Escalado en 3D con un tutor IA." />
+  <link rel="icon" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="marca" href="#"><img src="logo.png" alt="" width="32" height="32" /> BlendGO!</a>
+    <nav>
+      <a href="#funciones">Funciones</a>
+      <a href="#descargar">Descargar</a>
+      <a href="#uso">Cómo usarla</a>
+      <a href="#prueba">Usuarios de prueba</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-texto">
+        <p class="etiqueta">App educativa · Android</p>
+        <h1>Aprendé modelado 3D <span>jugando</span>, con un tutor IA a tu lado.</h1>
+        <p class="lead">BlendGO! enseña los conceptos base de cualquier software 3D —Traslación, Rotación y Escalado (TRS)— con ejercicios prácticos, XP, niveles, insignias y <strong>Blendy</strong>, un tutor con Google Gemini que entiende órdenes como “giralo 45 grados en X” y las ejecuta en el visor.</p>
+        <div class="cta">
+          <a class="btn btn-primario" id="btn-apk" href="#descargar">Descargar APK</a>
+          <a class="btn btn-borde" href="#uso">Ver cómo empezar</a>
+        </div>
+        <p class="estado" id="estado">Comprobando el servidor…</p>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <svg viewBox="0 0 320 300" class="cubo">
+          <g stroke="#2E3443" stroke-width="1">
+            <path d="M20 220 L160 290 L300 220 L160 150 Z" fill="none" />
+            <path d="M55 237 L195 167 M90 255 L230 185 M125 272 L265 202 M55 202 L195 272 M90 185 L230 255 M125 167 L265 237" />
+          </g>
+          <line x1="160" y1="220" x2="300" y2="150" stroke="#F87171" stroke-width="2" />
+          <line x1="160" y1="220" x2="160" y2="40" stroke="#34D399" stroke-width="2" />
+          <line x1="160" y1="220" x2="40" y2="160" stroke="#60A5FA" stroke-width="2" />
+          <g class="gira">
+            <path d="M160 80 L220 110 L160 140 L100 110 Z" fill="#A5B4FC" />
+            <path d="M100 110 L160 140 L160 210 L100 180 Z" fill="#6366F1" />
+            <path d="M160 140 L220 110 L220 180 L160 210 Z" fill="#4F46E5" />
+          </g>
+          <path d="M200 60 L250 85 L200 110 L150 85 Z M150 85 L150 135 L200 160 L250 135 L250 85 M200 110 L200 160" fill="none" stroke="#10B981" stroke-width="1.6" stroke-dasharray="5 4" />
+        </svg>
+      </div>
+    </section>
+
+    <section id="problema" class="bloque">
+      <h2>¿Qué problema resuelve?</h2>
+      <div class="grid-3">
+        <article class="card"><h3>Curva de aprendizaje</h3><p>Blender o Maya intimidan: cientos de botones antes de entender lo básico. BlendGO! aísla los conceptos TRS en desafíos cortos.</p></article>
+        <article class="card"><h3>Práctica guiada</h3><p>Cada ejercicio muestra el objetivo como un “fantasma” y el servidor valida el resultado con pistas concretas por eje.</p></article>
+        <article class="card"><h3>Motivación</h3><p>XP, niveles, rachas diarias, insignias y ranking convierten la práctica en un hábito.</p></article>
+      </div>
+      <p class="publico"><strong>Público:</strong> estudiantes de secundaria y principiantes en diseño 3D, y docentes que quieren crear ejercicios para su curso.</p>
+    </section>
+
+    <section id="funciones" class="bloque">
+      <h2>Principales funcionalidades</h2>
+      <ul class="funciones">
+        <li><b>Visor 3D interactivo</b> con grilla, ejes, gizmo y cámara orbital (perspectiva u ortográfica).</li>
+        <li><b>Controles TRS</b> con botones y sliders por eje.</li>
+        <li><b>Tutor IA Blendy</b> (Gemini + Function Calling): mueve, rota, escala, reinicia y consulta tu progreso.</li>
+        <li><b>Gamificación:</b> XP, niveles, rangos, rachas, insignias y ranking.</li>
+        <li><b>Comunidad:</b> comentarios con respuestas y valoraciones por ejercicio.</li>
+        <li><b>Roles:</b> estudiante, profesor (crea/edita ejercicios y categorías) y administrador (gestiona usuarios).</li>
+        <li><b>Notificaciones push</b> por nuevos ejercicios, respuestas, logros y recordatorio de racha.</li>
+        <li><b>Modo offline:</b> los intentos sin conexión se sincronizan solos.</li>
+        <li><b>Cuenta:</b> registro, login con email o Google, recuperación de contraseña, tema claro/oscuro.</li>
+      </ul>
+    </section>
+
+    <section id="descargar" class="bloque descarga">
+      <div>
+        <h2>Descargar la app</h2>
+        <p>Requisitos: Android 8.0 o superior, conexión a internet, unos 80 MB libres.</p>
+        <a class="btn btn-primario" id="btn-apk-2" href="#">Descargar APK</a>
+        <p class="nota" id="apk-nota"></p>
+        <ol class="pasos">
+          <li>Abrí este sitio desde el celular y tocá <b>Descargar APK</b>.</li>
+          <li>Abrí el archivo descargado. Si Android lo pide, permití “Instalar apps desconocidas” para tu navegador.</li>
+          <li>Tocá <b>Instalar</b> y luego <b>Abrir</b>.</li>
+          <li>La primera conexión puede tardar hasta 1 minuto: el servidor gratuito “se despierta”.</li>
+        </ol>
+      </div>
+      <figure class="qr">
+        <img id="qr" alt="Código QR para descargar la app" width="200" height="200" />
+        <figcaption>Escaneá con la cámara del celular</figcaption>
+      </figure>
+    </section>
+
+    <section id="uso" class="bloque">
+      <h2>Cómo empezar</h2>
+      <div class="grid-3">
+        <article class="card"><span class="num">1</span><h3>Creá tu cuenta</h3><p>En la pantalla inicial tocá <b>“Creá una”</b>, completá nombre, email y una contraseña de 8+ caracteres con letras y números. También podés usar <b>Continuar con Google</b>.</p></article>
+        <article class="card"><span class="num">2</span><h3>Elegí un ejercicio</h3><p>En <b>Inicio</b> vas a ver los ejercicios por categoría y dificultad. Tocá uno y luego <b>Comenzar en el simulador</b>.</p></article>
+        <article class="card"><span class="num">3</span><h3>Transformá y validá</h3><p>Usá Mover/Rotar/Escalar o pedíselo a <b>Blendy</b>. Cuando el cubo coincida con las líneas verdes, tocá <b>Validar ejercicio</b> y sumá XP.</p></article>
+      </div>
+      <p class="mas">¿Olvidaste la contraseña? En el login tocá <b>“¿Olvidaste tu contraseña?”</b>: te llega un código de 6 dígitos por email. Las opciones de cuenta (foto, tema, notificaciones, cambiar contraseña, cerrar sesión) están en <b>Perfil → Configuración</b>.</p>
+    </section>
+
+    <section id="prueba" class="bloque">
+      <h2>Usuarios de prueba</h2>
+      <p>Para evaluar todos los roles sin registrarte:</p>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Rol</th><th>Email</th><th>Contraseña</th><th>Puede</th></tr></thead>
+          <tbody>
+            <tr><td>Estudiante</td><td>alumno@blendgo.app</td><td>Alumno123!</td><td>Hacer ejercicios, comentar, valorar, chatear con la IA</td></tr>
+            <tr><td>Profesor</td><td>profe@blendgo.app</td><td>Profe123!</td><td>Todo lo anterior + crear/editar sus ejercicios y categorías (pestaña Gestión)</td></tr>
+            <tr><td>Administrador</td><td>admin@blendgo.app</td><td>Admin123!</td><td>Todo + cambiar roles, eliminar usuarios, borrar categorías</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="nota">Para una prueba completa: entrá como profesor y publicá un ejercicio → entrá como estudiante y vas a ver la notificación y el ejercicio nuevo.</p>
+    </section>
+
+    <section class="bloque tecnico">
+      <h2>Tecnologías</h2>
+      <p>React Native (Expo SDK 58) · React Navigation · Node.js + Express · SQLite (libSQL / Turso) · JWT + bcrypt · Google Gemini (Function Calling) · Expo Notifications · Render.</p>
+    </section>
+  </main>
+
+  <footer>BlendGO! — Proyecto Final · Construcción de Software · 6.º año</footer>
+  <script src="app.js"></script>
+</body>
+</html>

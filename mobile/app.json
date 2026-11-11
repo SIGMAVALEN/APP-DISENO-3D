@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "BlendGO!",
+    "slug": "blendgo",
+    "scheme": "blendgo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0F1117",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F1117"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.blendgo.app"
+    },
+    "android": {
+      "package": "com.blendgo.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F1117",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["android.permission.POST_NOTIFICATIONS"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366F1",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BlendGO! usa tus fotos para elegir tu imagen de perfil.",
+          "cameraPermission": false
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.REEMPLAZAR_CON_TU_IOS_CLIENT_ID"
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "https://blendgo-api.onrender.com",
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

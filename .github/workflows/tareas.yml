@@ -1,0 +1,17 @@
+# Dispara las tareas en segundo plano del backend aunque Render free esté dormido.
+# Configurá en GitHub → Settings → Secrets: API_URL (https://blendgo-api.onrender.com) y CRON_SECRET.
+name: Tareas programadas BlendGO
+on:
+  schedule:
+    - cron: '0 22 * * *'   # 19:00 Argentina → recordatorio de racha
+    - cron: '15 6 * * *'   # 03:15 Argentina → limpieza
+  workflow_dispatch:
+jobs:
+  tarea:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ejecutar tarea
+        run: |
+          TAREA=$([ "${{ github.event.schedule }}" = "15 6 * * *" ] && echo limpieza || echo recordatorio-racha)
+          curl -fsS --retry 3 --retry-delay 30 --max-time 120 -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" "${{ secrets.API_URL }}/api/tareas/$TAREA"
