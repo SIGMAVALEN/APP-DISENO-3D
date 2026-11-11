@@ -1,4 +1,5 @@
-// Panel de gestión (Profesor/Admin): ABM de ejercicios y categorías, y usuarios (solo Admin).
+// "Aportar": cualquier usuario crea, edita y borra SUS ejercicios (como un repo en GitHub).
+// El superadmin además ve Categorías y Usuarios, y puede borrar ejercicios de otros (moderación).
 // La app oculta las opciones según el rol, pero los permisos reales se validan en el backend.
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -7,6 +8,7 @@ import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useApi } from '../../lib/useApi';
+import { esSuper, ROL_LABEL } from '../../lib/roles';
 import {
   Avatar, Banner, Button, Card, Chip, colorDificultad, confirmar, ErrorEstado, EstadoVacio, GlassModal, H1, H2, Input, Loading, Row, Screen, Segmented, T,
 } from '../../components/ui';
@@ -16,14 +18,22 @@ export default function ManageScreen({ navigation }) {
   const [seccion, setSeccion] = useState('ejercicios');
   const opciones = [
     { value: 'ejercicios', label: 'Ejercicios', icon: 'cube-outline' },
-    { value: 'categorias', label: 'Categorías', icon: 'folder-outline' },
-    ...(usuario.rol === 'admin' ? [{ value: 'usuarios', label: 'Usuarios', icon: 'people-outline' }] : []),
+    ...(esSuper(usuario)
+      ? [
+          { value: 'categorias', label: 'Categorías', icon: 'folder-outline' },
+          { value: 'usuarios', label: 'Usuarios', icon: 'people-outline' },
+        ]
+      : []),
   ];
   return (
     <Screen>
-      <H1>Gestión</H1>
-      <T muted style={{ marginBottom: 14 }}>{usuario.rol === 'admin' ? 'Administrá contenido y usuarios.' : 'Creá y editá tus ejercicios.'}</T>
-      <Segmented options={opciones} value={seccion} onChange={setSeccion} />
+      <H1>Aportar</H1>
+      <T muted style={{ marginBottom: 14 }}>
+        {esSuper(usuario)
+          ? 'Sos superadmin: además de aportar, podés moderar ejercicios, categorías y usuarios.'
+          : 'Creá ejercicios para la comunidad. Solo vos podés editar o borrar los tuyos.'}
+      </T>
+      {opciones.length > 1 ? <Segmented options={opciones} value={seccion} onChange={setSeccion} /> : null}
       <View style={{ height: 16 }} />
       {seccion === 'ejercicios' ? <Ejercicios navigation={navigation} /> : null}
       {seccion === 'categorias' ? <Categorias /> : null}
@@ -35,12 +45,16 @@ export default function ManageScreen({ navigation }) {
 function Ejercicios({ navigation }) {
   const { colors } = useTheme();
   const { usuario } = useAuth();
-  const [soloMios, setSoloMios] = useState(usuario.rol === 'profesor');
+  const [soloMios, setSoloMios] = useState(true);
   const { data, error, cargando, recargar } = useApi(`/ejercicios${soloMios ? '?mios=1' : ''}`);
   const [msg, setMsg] = useState(null);
 
   const borrar = async (e) => {
-    if (!(await confirmar('Eliminar ejercicio', `¿Eliminar "${e.titulo}"? También se borra el progreso y los comentarios asociados.`, 'Eliminar', true))) return;
+    const mio = e.creadoPor === usuario.id;
+    const aviso = mio
+      ? `¿Eliminar "${e.titulo}"? También se borra el progreso y los comentarios asociados.`
+      : `Vas a eliminar "${e.titulo}" de ${e.autor || 'otro usuario'} como moderación. Se le va a avisar con una notificación.`;
+    if (!(await confirmar(mio ? 'Eliminar ejercicio' : 'Moderar ejercicio', aviso, 'Eliminar', true))) return;
     try {
       await api(`/ejercicios/${e.id}`, { method: 'DELETE' });
       setMsg({ tipo: 'ok', texto: 'Ejercicio eliminado' });
@@ -60,10 +74,16 @@ function Ejercicios({ navigation }) {
       {msg ? <Banner tipo={msg.tipo} onClose={() => setMsg(null)}>{msg.texto}</Banner> : null}
       {cargando ? <Loading /> : null}
       {error && !data ? <ErrorEstado error={error} onRetry={recargar} /> : null}
-      {data?.length === 0 ? <EstadoVacio titulo="Todavía no creaste ejercicios" texto="Tocá “Nuevo ejercicio” para publicar el primero. Los estudiantes reciben una notificación." /> : null}
+      {data?.length === 0 ? (
+        <EstadoVacio
+          titulo={soloMios ? 'Todavía no aportaste ejercicios' : 'No hay ejercicios'}
+          texto={soloMios ? 'Tocá “Nuevo ejercicio” para publicar el primero. Toda la comunidad recibe una notificación.' : undefined}
+        />
+      ) : null}
       <View style={{ gap: 10 }}>
         {data?.map((e) => {
-          const editable = usuario.rol === 'admin' || e.creadoPor === usuario.id;
+          const mio = e.creadoPor === usuario.id;
+          const borrable = mio || esSuper(usuario);
           return (
             <Card key={e.id} style={{ padding: 14 }} onPress={() => navigation.navigate('Ejercicio', { id: e.id })}>
               <Row style={{ justifyContent: 'space-between' }}>
@@ -75,16 +95,18 @@ function Ejercicios({ navigation }) {
                   </Row>
                   <T muted size={12}>★ {e.valoracionPromedio ?? '–'} · {e.totalComentarios} comentarios · +{e.xpRecompensa} XP</T>
                 </View>
-                {editable ? (
-                  <Row gap={14}>
+                <Row gap={14}>
+                  {mio ? (
                     <Pressable onPress={() => navigation.navigate('FormEjercicio', { id: e.id })} hitSlop={8} accessibilityLabel="Editar">
                       <Ionicons name="create-outline" size={21} color={colors.primary} />
                     </Pressable>
-                    <Pressable onPress={() => borrar(e)} hitSlop={8} accessibilityLabel="Eliminar">
-                      <Ionicons name="trash-outline" size={21} color={colors.danger} />
+                  ) : null}
+                  {borrable ? (
+                    <Pressable onPress={() => borrar(e)} hitSlop={8} accessibilityLabel={mio ? 'Eliminar' : 'Eliminar (moderación)'}>
+                      <Ionicons name={mio ? 'trash-outline' : 'shield-outline'} size={21} color={colors.danger} />
                     </Pressable>
-                  </Row>
-                ) : null}
+                  ) : null}
+                </Row>
               </Row>
             </Card>
           );
@@ -126,7 +148,7 @@ function Categorias() {
               <T muted size={12.5} numberOfLines={2}>{c.descripcion || 'Sin descripción'} · {c.totalEjercicios} ejercicios</T>
             </View>
             <Pressable onPress={() => setEditando(c)} hitSlop={8} accessibilityLabel="Editar"><Ionicons name="create-outline" size={21} color={colors.primary} /></Pressable>
-            {usuario.rol === 'admin' ? (
+            {esSuper(usuario) ? (
               <Pressable onPress={() => borrar(c)} hitSlop={8} accessibilityLabel="Eliminar"><Ionicons name="trash-outline" size={21} color={colors.danger} /></Pressable>
             ) : null}
           </Card>
@@ -177,7 +199,7 @@ function FormCategoria({ categoria, onClose, onGuardada }) {
   );
 }
 
-const ROLES = ['estudiante', 'profesor', 'admin'];
+const ROLES = ['usuario', 'superadmin'];
 
 function Usuarios() {
   const { colors } = useTheme();
@@ -217,7 +239,7 @@ function Usuarios() {
     <View>
       {r ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-          {[['Usuarios', r.usuarios], ['Estudiantes', r.estudiantes], ['Profesores', r.profesores], ['Ejercicios', r.ejercicios], ['Completados', r.completados], ['Comentarios', r.comentarios]].map(([l, v]) => (
+          {[['Usuarios', r.usuarios], ['Superadmins', r.superadmins], ['Autores', r.autores], ['Ejercicios', r.ejercicios], ['Completados', r.completados], ['Saludos', r.saludos]].map(([l, v]) => (
             <Card key={l} style={{ width: '31%', flexGrow: 1, padding: 10, alignItems: 'center' }}>
               <T weight="800" size={18}>{v}</T>
               <T muted size={11}>{l}</T>
@@ -237,7 +259,7 @@ function Usuarios() {
               <T weight="700" numberOfLines={1}>{u.nombre}{u.id === yo.id ? ' (vos)' : ''}</T>
               <T muted size={12} numberOfLines={1}>{u.email} · Nv {u.nivel} · {u.xp} XP</T>
             </View>
-            <Chip label={u.rol} color={{ admin: colors.warning, profesor: colors.ai }[u.rol] || colors.textMuted} />
+            <Chip label={ROL_LABEL[u.rol] || u.rol} color={esSuper(u) ? colors.warning : colors.textMuted} />
           </Card>
         ))}
       </View>
@@ -254,7 +276,7 @@ function Usuarios() {
             <T weight="600" style={{ marginBottom: 8 }}>Asignar rol</T>
             <View style={{ gap: 8, marginBottom: 16 }}>
               {ROLES.map((rol) => (
-                <Button key={rol} title={rol[0].toUpperCase() + rol.slice(1)} variant={sel.rol === rol ? 'primary' : 'outline'} small onPress={() => sel.rol !== rol && cambiarRol(sel, rol)} />
+                <Button key={rol} title={ROL_LABEL[rol]} variant={sel.rol === rol ? 'primary' : 'outline'} small onPress={() => sel.rol !== rol && cambiarRol(sel, rol)} />
               ))}
             </View>
             <Button title="Eliminar usuario" icon="trash-outline" variant="danger" small onPress={() => borrar(sel)} />

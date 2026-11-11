@@ -111,7 +111,7 @@ export default function HomeScreen({ navigation }) {
           <T muted size={13.5} numberOfLines={2} style={{ marginTop: 2 }}>{siguiente.descripcion}</T>
         </Card>
       ) : lista.length ? (
-        <Card style={{ marginBottom: 20 }}><T weight="700">🏆 ¡Completaste todos los ejercicios! Esperá nuevos desafíos de tus profes.</T></Card>
+        <Card style={{ marginBottom: 20 }}><T weight="700">🏆 ¡Completaste todos los ejercicios! ¡Creá uno vos en la pestaña Aportar!</T></Card>
       ) : null}
 
       <H2 style={{ marginBottom: 10 }}>Cursos y niveles</H2>
@@ -150,6 +150,7 @@ function TarjetaEjercicio({ e, onPress }) {
         <Row gap={6}>
           <Chip label={e.dificultad} color={colorDificultad(e.dificultad, colors)} />
           <T muted size={12}>+{e.xpRecompensa} XP</T>
+          {e.autor ? <T muted size={12} numberOfLines={1} style={{ flexShrink: 1 }}>· por {e.autor.split(' ')[0]}</T> : null}
           {e.valoracionPromedio ? <T muted size={12}>· ★ {e.valoracionPromedio}</T> : null}
         </Row>
       </View>

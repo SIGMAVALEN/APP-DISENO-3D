@@ -5,9 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useApi } from '../lib/useApi';
+import { esSuper, ROL_LABEL } from '../lib/roles';
 import { Avatar, Button, Card, Chip, confirmar, Divider, ErrorEstado, H1, H2, ListItem, Loading, ProgressBar, Row, Screen, T } from '../components/ui';
 
-const ROLES = { estudiante: 'Estudiante', profesor: 'Profesor', admin: 'Administrador' };
 
 export default function ProfileScreen({ navigation }) {
   const { colors } = useTheme();
@@ -31,7 +31,7 @@ export default function ProfileScreen({ navigation }) {
         <T muted>{usuario.email}</T>
         <Row gap={8}>
           <Chip label={usuario.rango} icon="ribbon-outline" color={colors.primary} />
-          <Chip label={ROLES[usuario.rol]} icon="shield-outline" color={usuario.rol === 'estudiante' ? colors.textMuted : colors.ai} />
+          <Chip label={ROL_LABEL[usuario.rol] || usuario.rol} icon={esSuper(usuario) ? 'shield-checkmark-outline' : 'person-outline'} color={esSuper(usuario) ? colors.warning : colors.textMuted} />
         </Row>
       </View>
 
@@ -85,6 +85,8 @@ export default function ProfileScreen({ navigation }) {
       ) : null}
 
       <Card style={{ paddingVertical: 4, marginBottom: 18 }}>
+        <ListItem icon="happy-outline" titulo="Mi perfil público" subtitulo="Cómo te ven los demás y los saludos que recibiste" onPress={() => navigation.navigate('PerfilPublico', { id: usuario.id })} />
+        <Divider />
         <ListItem icon="settings-outline" titulo="Configuración de la cuenta" subtitulo="Datos, contraseña, tema y notificaciones" onPress={() => navigation.navigate('Configuracion')} />
         <Divider />
         <ListItem icon="notifications-outline" titulo="Notificaciones" onPress={() => navigation.navigate('Notificaciones')} />

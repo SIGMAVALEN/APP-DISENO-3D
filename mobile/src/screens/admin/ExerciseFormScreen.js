@@ -1,4 +1,4 @@
-// Alta y modificación de ejercicios (Profesor/Admin) con vista previa 3D en vivo.
+// Alta y modificación de ejercicios (cualquier usuario; solo el autor edita) con vista previa 3D en vivo.
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { api } from '../../api/client';
@@ -86,7 +86,7 @@ export default function ExerciseFormScreen({ route, navigation }) {
     <Screen edges={['bottom']}>
       {error ? <Banner onClose={() => setError(null)}>{error}</Banner> : null}
       <Input label="Título" value={form.titulo} onChangeText={set('titulo')} error={errores.titulo} maxLength={60} placeholder="Ej: Torre inclinada" />
-      <Input label="Consigna" value={form.descripcion} onChangeText={set('descripcion')} error={errores.descripcion} maxLength={400} multiline placeholder="Explicá qué tiene que lograr el estudiante" />
+      <Input label="Consigna" value={form.descripcion} onChangeText={set('descripcion')} error={errores.descripcion} maxLength={400} multiline placeholder="Explicá qué tiene que lograr quien lo haga" />
 
       <T size={13} weight="600" muted style={{ marginBottom: 6 }}>Categoría</T>
       <Row style={{ flexWrap: 'wrap', marginBottom: errores.idCategoria ? 4 : 14 }} gap={8}>
@@ -123,7 +123,7 @@ export default function ExerciseFormScreen({ route, navigation }) {
       </Card>
 
       <Button title={id ? 'Guardar cambios' : 'Publicar ejercicio'} icon="cloud-upload-outline" onPress={guardar} loading={guardando} />
-      {!id ? <T muted size={12} center style={{ marginTop: 8 }}>Al publicar, todos los estudiantes reciben una notificación.</T> : null}
+      {!id ? <T muted size={12} center style={{ marginTop: 8 }}>Al publicar, toda la comunidad recibe una notificación. Solo vos vas a poder editarlo o borrarlo.</T> : null}
     </Screen>
   );
 }

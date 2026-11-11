@@ -36,14 +36,15 @@ export async function run(sql, args = []) {
 
 // Esquema. Se corrigió la sintaxis del borrador original
 // ("INTEGER FOREIGN KEY REFERENCES" no es válido en SQLite → "INTEGER REFERENCES").
-const SCHEMA = [
-  `CREATE TABLE IF NOT EXISTS USUARIO (
+// Roles: 'usuario' (cualquiera: hace ejercicios y aporta los suyos, como en GitHub)
+// y 'superadmin' (además modera: puede borrar contenido de otros y gestionar usuarios).
+const COLUMNAS_USUARIO = `
     id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT,
     google_id TEXT UNIQUE,
-    rol TEXT NOT NULL DEFAULT 'estudiante' CHECK(rol IN ('estudiante','profesor','admin')),
+    rol TEXT NOT NULL DEFAULT 'usuario' CHECK(rol IN ('usuario','superadmin')),
     nivel INTEGER DEFAULT 1,
     xp_total INTEGER DEFAULT 0,
     avatar TEXT,
@@ -53,7 +54,10 @@ const SCHEMA = [
     racha_maxima INTEGER DEFAULT 0,
     ultima_actividad TEXT,
     token_version INTEGER DEFAULT 0,
-    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP`;
+
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS USUARIO (${COLUMNAS_USUARIO}
   )`,
   `CREATE TABLE IF NOT EXISTS CATEGORIA (
     id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,6 +126,14 @@ const SCHEMA = [
     intentos INTEGER DEFAULT 0,
     usado INTEGER DEFAULT 0
   )`,
+  // Interacción entre usuarios: saludos/reacciones prefijados (emoji + mensaje corto).
+  `CREATE TABLE IF NOT EXISTS SALUDO (
+    id_saludo INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_de INTEGER NOT NULL REFERENCES USUARIO(id_usuario) ON DELETE CASCADE,
+    id_para INTEGER NOT NULL REFERENCES USUARIO(id_usuario) ON DELETE CASCADE,
+    codigo TEXT NOT NULL,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
   `CREATE TABLE IF NOT EXISTS INSIGNIA (
     id_insignia INTEGER PRIMARY KEY AUTOINCREMENT,
     codigo TEXT UNIQUE NOT NULL,
@@ -138,6 +150,8 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_progreso_usuario ON PROGRESO_USUARIO(id_usuario)`,
   `CREATE INDEX IF NOT EXISTS idx_comentario_ej ON COMENTARIO(id_ejercicio)`,
   `CREATE INDEX IF NOT EXISTS idx_notif_usuario ON NOTIFICACION(id_usuario, leida)`,
+  `CREATE INDEX IF NOT EXISTS idx_saludo_para ON SALUDO(id_para, creado_en)`,
+  `CREATE INDEX IF NOT EXISTS idx_saludo_de ON SALUDO(id_de, id_para, creado_en)`,
 ];
 
 const S = (p, r, s) => JSON.stringify({ position: p, rotation: r, scale: s });
@@ -176,9 +190,32 @@ export const INSIGNIAS = [
   ['AVANZADO', 'Sin miedo', 'Completaste un ejercicio Avanzado.', 'flash-outline'],
 ];
 
+/**
+ * Migración de roles (estudiante/profesor/admin → usuario/superadmin).
+ * SQLite no permite cambiar un CHECK, así que se reconstruye la tabla USUARIO con el
+ * procedimiento oficial (crear nueva → copiar → borrar vieja → renombrar). migrate()
+ * de libSQL lo ejecuta en una transacción con las foreign keys apagadas, así no se
+ * borra en cascada el progreso, los comentarios ni nada de lo que referencia al usuario.
+ * Si algo falla, se revierte todo.
+ */
+async function migrarRoles() {
+  const t = await get("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'USUARIO'");
+  if (!t || !String(t.sql).includes("'profesor'")) return;
+  const columnas = 'id_usuario, nombre, email, password_hash, google_id, rol, nivel, xp_total, avatar, tema, notif_activas, racha_actual, racha_maxima, ultima_actividad, token_version, creado_en';
+  await db.migrate([
+    `CREATE TABLE USUARIO_nuevo (${COLUMNAS_USUARIO}\n  )`,
+    `INSERT INTO USUARIO_nuevo (${columnas})
+       SELECT ${columnas.replace('rol,', "CASE WHEN rol = 'admin' THEN 'superadmin' ELSE 'usuario' END,")} FROM USUARIO`,
+    'DROP TABLE USUARIO',
+    'ALTER TABLE USUARIO_nuevo RENAME TO USUARIO',
+  ]);
+  console.log('[db] Migración de roles aplicada: admin → superadmin; estudiante/profesor → usuario.');
+}
+
 export async function initDb() {
   if (config.dbUrl.startsWith('file:')) await db.execute('PRAGMA foreign_keys = ON');
   for (const stmt of SCHEMA) await db.execute(stmt);
+  await migrarRoles();
 
   for (const [codigo, nombre, descripcion, icono] of INSIGNIAS) {
     await run('INSERT OR IGNORE INTO INSIGNIA (codigo, nombre, descripcion, icono) VALUES (?,?,?,?)', [codigo, nombre, descripcion, icono]);
@@ -190,9 +227,9 @@ export async function initDb() {
 
 async function seed() {
   const users = [
-    ['Admin BlendGO', 'admin@blendgo.app', 'Admin123!', 'admin'],
-    ['Profe Ana', 'profe@blendgo.app', 'Profe123!', 'profesor'],
-    ['Alumno Leo', 'alumno@blendgo.app', 'Alumno123!', 'estudiante'],
+    ['Admin BlendGO', 'admin@blendgo.app', 'Admin123!', 'superadmin'],
+    ['Ana Modeladora', 'profe@blendgo.app', 'Profe123!', 'usuario'],
+    ['Leo Vértice', 'alumno@blendgo.app', 'Alumno123!', 'usuario'],
   ];
   for (const [nombre, email, pass, rol] of users) {
     await run('INSERT INTO USUARIO (nombre, email, password_hash, rol) VALUES (?,?,?,?)', [nombre, email, bcrypt.hashSync(pass, 10), rol]);
@@ -208,5 +245,5 @@ async function seed() {
       [cat, titulo, desc, dif, xp, ini, obj, profe.id_usuario]
     );
   }
-  console.log('[db] Datos de demostración cargados (admin / profe / alumno).');
+  console.log('[db] Datos de demostración cargados (superadmin + 2 usuarios).');
 }

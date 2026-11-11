@@ -1,7 +1,7 @@
 // Componentes visuales reutilizables con la "Estética 3D Studio".
 import { forwardRef, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressable,
+  ActivityIndicator, Alert, Animated, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable,
   ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -33,19 +33,43 @@ export function T({ style, muted, size = 15, weight = '400', color, center, chil
 export const H1 = (p) => <T size={26} weight="800" {...p} />;
 export const H2 = (p) => <T size={19} weight="700" {...p} />;
 
-/** Contenedor de pantalla con scroll, fondo del tema y márgenes seguros. */
+/**
+ * Altura actual del teclado en Android. Con edge-to-edge (Android 15+ y Expo SDK 54+)
+ * la ventana ya no se achica al abrir el teclado: lo tapa todo y el ScrollView no puede
+ * llegar a los campos de abajo. Sumando esta altura al final del contenido, se puede
+ * scrollear con el campo enfocado y el teclado abierto.
+ */
+export function useAlturaTeclado() {
+  const [altura, setAltura] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+    const show = Keyboard.addListener('keyboardDidShow', (e) => setAltura(e.endCoordinates?.height || 0));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setAltura(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+  return altura;
+}
+
+/** Contenedor de pantalla con scroll, fondo del tema, márgenes seguros y soporte de teclado. */
 export function Screen({ children, scroll = true, padded = true, refreshControl, contentStyle, edges = ['top'] }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const teclado = useAlturaTeclado();
   const pad = {
     paddingTop: edges.includes('top') ? insets.top + 12 : 12,
-    paddingBottom: edges.includes('bottom') ? insets.bottom + 16 : 24,
+    paddingBottom: (edges.includes('bottom') ? insets.bottom + 16 : 24) + teclado,
     paddingHorizontal: padded ? 18 : 0,
   };
   if (!scroll) return <View style={[{ flex: 1, backgroundColor: colors.bg }, pad, contentStyle]}>{children}</View>;
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={[pad, contentStyle]} keyboardShouldPersistTaps="handled" refreshControl={refreshControl}>
+      <ScrollView
+        contentContainerStyle={[pad, contentStyle]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+        showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
+      >
         {children}
       </ScrollView>
     </KeyboardAvoidingView>

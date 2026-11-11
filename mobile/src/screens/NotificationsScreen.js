@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useApi } from '../lib/useApi';
 import { Card, confirmar, ErrorEstado, EstadoVacio, fechaRelativa, Loading, Row, Screen, T } from '../components/ui';
 
-const ICONOS = { ejercicio: 'cube-outline', comentario: 'chatbubble-outline', nivel: 'arrow-up-circle-outline', insignia: 'ribbon-outline', recordatorio: 'flame-outline', rol: 'key-outline' };
+const ICONOS = { ejercicio: 'cube-outline', comentario: 'chatbubble-outline', nivel: 'arrow-up-circle-outline', insignia: 'ribbon-outline', recordatorio: 'flame-outline', rol: 'key-outline', saludo: 'happy-outline', moderacion: 'shield-outline' };
 
 export default function NotificationsScreen({ navigation }) {
   const { colors } = useTheme();
@@ -44,7 +44,13 @@ export default function NotificationsScreen({ navigation }) {
         {data?.items.map((n) => (
           <Card
             key={n.id}
-            onPress={n.data?.idEjercicio ? () => navigation.navigate('Ejercicio', { id: n.data.idEjercicio }) : undefined}
+            onPress={
+              n.data?.idEjercicio
+                ? () => navigation.navigate('Ejercicio', { id: n.data.idEjercicio })
+                : n.data?.idUsuario
+                  ? () => navigation.navigate('PerfilPublico', { id: n.data.idUsuario })
+                  : undefined
+            }
             style={{ flexDirection: 'row', gap: 12, padding: 14, borderColor: n.leida ? colors.border : colors.primary + '88' }}
           >
             <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }}>

@@ -9,6 +9,7 @@ import { errorHandler, HttpError } from './lib/http.js';
 import authRoutes from './routes/auth.js';
 import catalogoRoutes from './routes/catalogo.js';
 import usuariosRoutes from './routes/usuarios.js';
+import comunidadRoutes from './routes/comunidad.js';
 import { iniciarJobs, TAREAS } from './services/jobs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -55,6 +56,7 @@ export function crearApp() {
   app.use('/api/auth', authRoutes);
   app.use('/api', catalogoRoutes);
   app.use('/api', usuariosRoutes);
+  app.use('/api', comunidadRoutes);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Ruta no encontrada')));
 
   // Sitio web público del proyecto (requisito 8), servido por el mismo backend.

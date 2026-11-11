@@ -19,6 +19,7 @@ function Raiz() {
     const data = response?.notification?.request?.content?.data || {};
     if (!navigationRef.isReady() || !usuario) return;
     if (data.idEjercicio) navigationRef.navigate('Ejercicio', { id: Number(data.idEjercicio) });
+    else if (data.idUsuario) navigationRef.navigate('PerfilPublico', { id: Number(data.idUsuario) });
     else if (data.tipo && data.tipo !== 'recordatorio') navigationRef.navigate('Notificaciones');
   };
   useEffect(() => {

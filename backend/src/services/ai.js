@@ -118,9 +118,9 @@ export async function chatTutor({ usuario, mensaje, historial = [], estado, ejer
           acciones.push({ tipo: 'resetViewport' });
           resultado = { ok: true, nuevoEstado: estadoSim };
         } else if (fc.name === 'getUserStats') {
-          // Seguridad: un estudiante solo puede consultar SUS estadísticas.
+          // Seguridad: cada uno consulta SUS estadísticas; solo el superadmin puede pedir las de otro.
           const pedido = Number(fc.args?.userId);
-          const id = pedido && usuario.rol !== 'estudiante' ? pedido : usuario.id;
+          const id = pedido && usuario.rol === 'superadmin' ? pedido : usuario.id;
           const s = await estadisticasUsuario(id);
           resultado = s
             ? { nombre: s.usuario.nombre, nivel: s.nivel, xp: s.xp, rango: s.rango, racha: s.rachaActual, completados: s.ejerciciosCompletados, totales: s.ejerciciosTotales, ultimos: s.completados.slice(0, 5).map((c) => c.titulo) }

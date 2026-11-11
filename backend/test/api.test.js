@@ -40,7 +40,7 @@ test('registro con validaciones', async () => {
   assert.equal(r.status, 201);
   assert.ok(r.body.token);
   assert.equal(r.body.usuario.email, 'test@mail.com');
-  assert.equal(r.body.usuario.rol, 'estudiante');
+  assert.equal(r.body.usuario.rol, 'usuario');
   assert.equal(r.body.usuario.password_hash, undefined);
   r = await api('POST', '/auth/register', { nombre: 'Otro', email: 'test@mail.com', password: 'clave1234' });
   assert.equal(r.status, 409);
@@ -97,31 +97,66 @@ test('ejercicios, validación en servidor y XP', async () => {
   assert.equal((await api('GET', '/ejercicios/99999', null, token)).status, 404);
 });
 
-test('roles: permisos controlados en el backend', async () => {
-  const alumno = await login('alumno@blendgo.app', 'Alumno123!');
-  const profe = await login('profe@blendgo.app', 'Profe123!');
+test('roles: cualquiera aporta, solo el autor edita y el superadmin modera', async () => {
+  const leo = await login('alumno@blendgo.app', 'Alumno123!');
+  const ana = await login('profe@blendgo.app', 'Profe123!');
   const admin = await login('admin@blendgo.app', 'Admin123!');
   const nuevo = { idCategoria: 1, titulo: 'Ejercicio test', descripcion: 'Mové el cubo a Z = 4 unidades', dificultad: 'Fácil', xpRecompensa: 40, estadoObjetivo: { position: [0, 0, 4], rotation: [0, 0, 0], scale: [1, 1, 1] } };
-  assert.equal((await api('POST', '/ejercicios', nuevo, alumno)).status, 403);
-  assert.equal((await api('POST', '/ejercicios', { ...nuevo, titulo: '' }, profe)).status, 400);
-  const c = await api('POST', '/ejercicios', nuevo, profe);
+  // Cualquier usuario puede publicar (con validaciones).
+  assert.equal((await api('POST', '/ejercicios', { ...nuevo, titulo: '' }, leo)).status, 400);
+  const c = await api('POST', '/ejercicios', nuevo, leo);
   assert.equal(c.status, 201);
-  // El alumno recibe la notificación del nuevo ejercicio.
-  const n = await api('GET', '/notificaciones', null, alumno);
-  assert.ok(n.body.items.some((i) => i.tipo === 'ejercicio'));
-  const upd = await api('PUT', `/ejercicios/${c.body.id}`, { ...nuevo, titulo: 'Ejercicio editado' }, profe);
-  assert.equal(upd.body.titulo, 'Ejercicio editado');
-  assert.equal((await api('DELETE', `/ejercicios/${c.body.id}`, null, alumno)).status, 403);
-  assert.equal((await api('GET', '/admin/usuarios', null, profe)).status, 403);
-  assert.equal((await api('DELETE', `/ejercicios/${c.body.id}`, null, profe)).status, 200);
+  // El resto de la comunidad recibe la notificación; el autor no.
+  assert.ok((await api('GET', '/notificaciones', null, ana)).body.items.some((i) => i.tipo === 'ejercicio' && i.data.idEjercicio === c.body.id));
+  assert.ok(!(await api('GET', '/notificaciones', null, leo)).body.items.some((i) => i.tipo === 'ejercicio' && i.data.idEjercicio === c.body.id));
+  // Editar: solo el autor (ni otro usuario ni el superadmin).
+  assert.equal((await api('PUT', `/ejercicios/${c.body.id}`, { ...nuevo, titulo: 'Hackeado' }, ana)).status, 403);
+  assert.equal((await api('PUT', `/ejercicios/${c.body.id}`, { ...nuevo, titulo: 'Moderado' }, admin)).status, 403);
+  assert.equal((await api('PUT', `/ejercicios/${c.body.id}`, { ...nuevo, titulo: 'Ejercicio editado' }, leo)).body.titulo, 'Ejercicio editado');
+  // Borrar: otro usuario no; el autor sí.
+  assert.equal((await api('DELETE', `/ejercicios/${c.body.id}`, null, ana)).status, 403);
+  assert.equal((await api('DELETE', `/ejercicios/${c.body.id}`, null, leo)).status, 200);
+  // El superadmin puede borrar el de otro, y el autor se entera.
+  const d = await api('POST', '/ejercicios', { ...nuevo, titulo: 'De Ana' }, ana);
+  assert.equal((await api('DELETE', `/ejercicios/${d.body.id}`, null, admin)).status, 200);
+  assert.ok((await api('GET', '/notificaciones', null, ana)).body.items.some((i) => i.tipo === 'moderacion'));
+  // Panel de usuarios y categorías: solo superadmin.
+  assert.equal((await api('GET', '/admin/usuarios', null, ana)).status, 403);
+  assert.equal((await api('POST', '/categorias', { nombre: 'Pivotes' }, ana)).status, 403);
+  const cat = await api('POST', '/categorias', { nombre: 'Pivotes', descripcion: 'Centro de transformación' }, admin);
+  assert.equal(cat.status, 201);
+  assert.equal((await api('DELETE', `/categorias/${cat.body.id}`, null, admin)).status, 200);
   const users = await api('GET', '/admin/usuarios', null, admin);
   const t = users.body.find((u) => u.email === 'test@mail.com');
-  const rol = await api('PATCH', `/admin/usuarios/${t.id}/rol`, { rol: 'profesor' }, admin);
-  assert.equal(rol.body.usuario.rol, 'profesor');
-  const cat = await api('POST', '/categorias', { nombre: 'Pivotes', descripcion: 'Centro de transformación' }, profe);
-  assert.equal(cat.status, 201);
-  assert.equal((await api('DELETE', `/categorias/${cat.body.id}`, null, profe)).status, 403);
-  assert.equal((await api('DELETE', `/categorias/${cat.body.id}`, null, admin)).status, 200);
+  assert.equal((await api('PATCH', `/admin/usuarios/${t.id}/rol`, { rol: 'profesor' }, admin)).status, 400);
+  assert.equal((await api('PATCH', `/admin/usuarios/${t.id}/rol`, { rol: 'superadmin' }, admin)).body.usuario.rol, 'superadmin');
+  await api('PATCH', `/admin/usuarios/${t.id}/rol`, { rol: 'usuario' }, admin);
+});
+
+test('saludos entre usuarios: perfil público, límite diario y notificación', async () => {
+  const leo = await login('alumno@blendgo.app', 'Alumno123!');
+  const ana = await login('profe@blendgo.app', 'Profe123!');
+  const idAna = (await api('GET', '/auth/me', null, ana)).body.usuario.id;
+  const idLeo = (await api('GET', '/auth/me', null, leo)).body.usuario.id;
+  assert.equal((await api('POST', `/usuarios/${idLeo}/saludos`, { codigo: 'GENIO' }, leo)).status, 400); // a sí mismo
+  assert.equal((await api('POST', `/usuarios/${idAna}/saludos`, { codigo: 'TEXTO_LIBRE' }, leo)).status, 400);
+  assert.equal((await api('POST', '/usuarios/99999/saludos', { codigo: 'GENIO' }, leo)).status, 404);
+  const r = await api('POST', `/usuarios/${idAna}/saludos`, { codigo: 'GENIO' }, leo);
+  assert.equal(r.status, 201);
+  assert.equal(r.body.restantesHoy, 4);
+  for (let i = 0; i < 4; i++) await api('POST', `/usuarios/${idAna}/saludos`, { codigo: 'BURRO' }, leo);
+  assert.equal((await api('POST', `/usuarios/${idAna}/saludos`, { codigo: 'FUEGO' }, leo)).status, 429);
+  const p = await api('GET', `/usuarios/${idAna}/perfil`, null, leo);
+  assert.equal(p.body.saludos.total, 5);
+  assert.equal(p.body.saludos.resumen[0].codigo, 'BURRO');
+  assert.equal(p.body.restantesHoy, 0);
+  assert.equal(p.body.esYo, false);
+  assert.equal(p.body.usuario.email, undefined); // el perfil público no expone el email
+  const n = await api('GET', '/notificaciones', null, ana);
+  assert.ok(n.body.items.some((i) => i.tipo === 'saludo' && i.data.idUsuario === idLeo));
+  assert.equal((await api('GET', '/me/saludos', null, ana)).body.length, 5);
+  const rank = await api('GET', '/ranking', null, ana);
+  assert.equal(rank.body.find((u) => u.id === idAna).saludos, 5);
 });
 
 test('interacción: comentarios, respuestas y valoraciones', async () => {
@@ -138,7 +173,7 @@ test('interacción: comentarios, respuestas y valoraciones', async () => {
   assert.equal(v.body.valoracionPromedio, 4);
   assert.equal((await api('PUT', '/ejercicios/1/valoracion', { puntaje: 9 }, alumno)).status, 400);
   const rank = await api('GET', '/ranking', null, alumno);
-  assert.equal(rank.body[0].nombre, 'Alumno Leo');
+  assert.equal(rank.body[0].nombre, 'Leo Vértice');
 });
 
 test('tutor IA (modo local) con function calling simulado', async () => {

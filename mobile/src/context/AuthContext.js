@@ -11,26 +11,44 @@ import { googleNativoDisponible } from '../lib/entorno';
 // En Expo Go ni siquiera se importa (evita el error "RNGoogleSignin could not be found").
 let GoogleSignin = null;
 let isSuccessResponse = null;
+let isErrorWithCode = null;
+let statusCodes = {};
 if (googleNativoDisponible) {
   try {
     const mod = require('@react-native-google-signin/google-signin');
     GoogleSignin = mod.GoogleSignin;
     isSuccessResponse = mod.isSuccessResponse;
+    isErrorWithCode = mod.isErrorWithCode;
+    statusCodes = mod.statusCodes || {};
   } catch {
     GoogleSignin = null;
   }
 }
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || Constants.expoConfig?.extra?.googleWebClientId || '';
 let googleConfigurado = false;
+/** Devuelve true si Google está listo para usarse (lo configura la primera vez). */
 function configurarGoogle() {
-  if (!GoogleSignin || !GOOGLE_WEB_CLIENT_ID || googleConfigurado || Platform.OS === 'web') return false;
-  try {
-    GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
-    googleConfigurado = true;
-  } catch {
-    return false;
-  }
+  if (!GoogleSignin || Platform.OS === 'web') return false;
+  if (googleConfigurado) return true;
+  GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+  googleConfigurado = true;
   return true;
+}
+
+/** Traduce los errores de Google Sign-In a mensajes que dicen qué revisar. */
+function mensajeErrorGoogle(e) {
+  const code = isErrorWithCode?.(e) ? String(e.code) : String(e?.code ?? '');
+  const texto = String(e?.message || '');
+  if (code === statusCodes.IN_PROGRESS) return 'Ya hay un inicio de sesión con Google en curso.';
+  if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) return 'Este celular no tiene Google Play Services actualizado.';
+  if (code === '10' || texto.includes('DEVELOPER_ERROR')) {
+    return 'Google rechazó la app (DEVELOPER_ERROR). Revisá en Google Cloud que el cliente Android tenga el paquete com.blendgo.app y la SHA-1 de este APK (eas credentials -p android).';
+  }
+  if (code === '7' || texto.includes('NETWORK_ERROR')) return 'Sin conexión con Google. Revisá tu internet.';
+  if (texto.includes('verificar la cuenta de Google')) {
+    return 'El servidor no pudo verificar tu cuenta. Revisá que GOOGLE_CLIENT_IDS en Render tenga el mismo ID Web que eas.json.';
+  }
+  return texto || 'No se pudo iniciar sesión con Google.';
 }
 
 const AuthContext = createContext(null);
@@ -113,21 +131,31 @@ export function AuthProvider({ children }) {
     avisoSesion,
     limpiarAviso: () => setAvisoSesion(null),
     googleDisponible: !!GoogleSignin && !!GOOGLE_WEB_CLIENT_ID && Platform.OS !== 'web',
+    // Para diagnóstico: por qué no aparece el botón de Google.
+    googleMotivo: Platform.OS === 'web' ? 'web' : !GoogleSignin ? 'expo-go' : !GOOGLE_WEB_CLIENT_ID ? 'sin-client-id' : 'ok',
 
     login: async (email, password) => iniciarSesion(await api('/auth/login', { method: 'POST', body: { email, password }, auth: false })),
     register: async (nombre, email, password) => iniciarSesion(await api('/auth/register', { method: 'POST', body: { nombre, email, password }, auth: false })),
     resetPassword: async (email, codigo, password) => iniciarSesion(await api('/auth/reset', { method: 'POST', body: { email, codigo, password }, auth: false })),
 
     loginGoogle: async () => {
-      if (!configurarGoogle()) throw new Error('El inicio con Google está disponible en la app instalada (APK).');
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const r = await GoogleSignin.signIn();
-      if (!isSuccessResponse(r)) return false; // el usuario canceló
-      const idToken = r.data?.idToken;
-      if (!idToken) throw new Error('Google no devolvió un token de identidad');
-      await iniciarSesion(await api('/auth/google', { method: 'POST', body: { idToken }, auth: false }));
-      return true;
+      if (!GoogleSignin) throw new Error('El inicio con Google funciona solo en la app instalada (APK), no en Expo Go ni en la web.');
+      if (!GOOGLE_WEB_CLIENT_ID) throw new Error('Falta EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID en eas.json. Cargalo y generá el APK de nuevo.');
+      try {
+        configurarGoogle();
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        const r = await GoogleSignin.signIn();
+        if (!isSuccessResponse(r)) return false; // el usuario cerró la ventana de Google
+        const idToken = r.data?.idToken;
+        if (!idToken) throw new Error('Google no devolvió un token de identidad. Revisá que el ID de eas.json sea el del cliente Web.');
+        await iniciarSesion(await api('/auth/google', { method: 'POST', body: { idToken }, auth: false }));
+        return true;
+      } catch (e) {
+        if (isErrorWithCode?.(e) && e.code === statusCodes.SIGN_IN_CANCELLED) return false;
+        throw new Error(mensajeErrorGoogle(e));
+      }
     },
+
 
     logout: async () => {
       const push = await pushTokenGuardado();

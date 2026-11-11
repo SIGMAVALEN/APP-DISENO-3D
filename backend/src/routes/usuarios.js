@@ -61,9 +61,9 @@ router.post('/me/password', async (req, res) => {
 
 router.delete('/me', async (req, res) => {
   const u = await usuarioPorId(req.user.id);
-  if (u.rol === 'admin') {
-    const { n } = await get("SELECT COUNT(*) AS n FROM USUARIO WHERE rol = 'admin'");
-    if (Number(n) <= 1) throw new HttpError(400, 'Sos el único administrador: asigná otro antes de borrar tu cuenta');
+  if (u.rol === 'superadmin') {
+    const { n } = await get("SELECT COUNT(*) AS n FROM USUARIO WHERE rol = 'superadmin'");
+    if (Number(n) <= 1) throw new HttpError(400, 'Sos el único superadmin: asigná otro antes de borrar tu cuenta');
   }
   if (u.password_hash) {
     const { password } = validate(z.object({ password: z.string({ error: 'Confirmá con tu contraseña' }).min(1, 'Confirmá con tu contraseña') }), req.body);
@@ -121,35 +121,36 @@ router.post('/ia/chat', limiteIA, async (req, res) => {
 });
 
 // ===================== ADMINISTRACIÓN =====================
-router.get('/admin/resumen', requireRole('admin'), async (_req, res) => {
+router.get('/admin/resumen', requireRole('superadmin'), async (_req, res) => {
   const q = async (sql) => Number((await get(sql)).n);
   res.json({
     usuarios: await q('SELECT COUNT(*) AS n FROM USUARIO'),
-    estudiantes: await q("SELECT COUNT(*) AS n FROM USUARIO WHERE rol = 'estudiante'"),
-    profesores: await q("SELECT COUNT(*) AS n FROM USUARIO WHERE rol = 'profesor'"),
+    superadmins: await q("SELECT COUNT(*) AS n FROM USUARIO WHERE rol = 'superadmin'"),
+    autores: await q('SELECT COUNT(DISTINCT creado_por) AS n FROM EJERCICIO WHERE creado_por IS NOT NULL'),
     ejercicios: await q('SELECT COUNT(*) AS n FROM EJERCICIO'),
     completados: await q('SELECT COUNT(*) AS n FROM PROGRESO_USUARIO WHERE completado = 1'),
     comentarios: await q('SELECT COUNT(*) AS n FROM COMENTARIO'),
+    saludos: await q('SELECT COUNT(*) AS n FROM SALUDO'),
   });
 });
 
-router.get('/admin/usuarios', requireRole('admin'), async (req, res) => {
+router.get('/admin/usuarios', requireRole('superadmin'), async (req, res) => {
   const q = req.query.q ? `%${req.query.q}%` : '%';
   const rows = await all('SELECT * FROM USUARIO WHERE nombre LIKE ? OR email LIKE ? ORDER BY creado_en DESC LIMIT 200', [q, q]);
   res.json(rows.map(vistaUsuario));
 });
 
-router.patch('/admin/usuarios/:id/rol', requireRole('admin'), async (req, res) => {
+router.patch('/admin/usuarios/:id/rol', requireRole('superadmin'), async (req, res) => {
   const id = idParam(req.params.id);
-  const { rol } = validate(z.object({ rol: z.enum(['estudiante', 'profesor', 'admin'], { error: 'Rol inválido' }) }), req.body);
+  const { rol } = validate(z.object({ rol: z.enum(['usuario', 'superadmin'], { error: 'Rol inválido' }) }), req.body);
   if (id === req.user.id) throw new HttpError(400, 'No podés cambiar tu propio rol');
   const r = await run('UPDATE USUARIO SET rol = ? WHERE id_usuario = ?', [rol, id]);
   if (!r.changes) throw new HttpError(404, 'El usuario no existe');
-  await notificar(id, '🔑 Tu rol cambió', `Un administrador te asignó el rol "${rol}".`, 'rol', { rol });
+  await notificar(id, '🔑 Tu rol cambió', rol === 'superadmin' ? 'Ahora sos superadmin: podés moderar contenido y usuarios.' : 'Tu cuenta volvió a ser de usuario.', 'rol', { rol });
   res.json({ usuario: vistaUsuario(await usuarioPorId(id)) });
 });
 
-router.delete('/admin/usuarios/:id', requireRole('admin'), async (req, res) => {
+router.delete('/admin/usuarios/:id', requireRole('superadmin'), async (req, res) => {
   const id = idParam(req.params.id);
   if (id === req.user.id) throw new HttpError(400, 'Para borrar tu cuenta usá la opción de tu perfil');
   const r = await run('DELETE FROM USUARIO WHERE id_usuario = ?', [id]);

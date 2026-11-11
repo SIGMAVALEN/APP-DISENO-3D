@@ -13,7 +13,7 @@ export async function recordatorioRacha() {
   const hoy = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
   const ayer = new Date(Date.parse(hoy) - 86400_000).toISOString().slice(0, 10);
   const pendientes = await all(
-    "SELECT id_usuario FROM USUARIO WHERE rol = 'estudiante' AND racha_actual > 0 AND ultima_actividad = ?",
+    'SELECT id_usuario FROM USUARIO WHERE racha_actual > 0 AND ultima_actividad = ?',
     [ayer]
   );
   await notificarVarios(

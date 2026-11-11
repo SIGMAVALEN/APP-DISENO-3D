@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useApi } from '../lib/useApi';
+import { esAutor, esSuper } from '../lib/roles';
 import Viewport3D from '../components/Viewport3D';
 import {
   Avatar, Banner, Button, Card, Chip, colorDificultad, confirmar, ErrorEstado, fechaRelativa, H1, H2, Input, Loading, Row, Screen, Stars, T,
@@ -23,20 +24,41 @@ export default function ExerciseDetailScreen({ route, navigation }) {
   const [error, setError] = useState(null);
 
   const e = ej.data;
-  const puedeEditar = e && (usuario.rol === 'admin' || (usuario.rol === 'profesor' && e.creadoPor === usuario.id));
+  // Editar: solo el autor. Borrar: el autor o el superadmin (moderación).
+  const puedeEditar = esAutor(usuario, e);
+  const puedeBorrar = puedeEditar || (e && esSuper(usuario));
 
   useLayoutEffect(() => {
+    const borrarEjercicio = async () => {
+      const aviso = puedeEditar
+        ? `¿Eliminar "${e.titulo}"? También se borra el progreso y los comentarios.`
+        : `Vas a eliminar "${e.titulo}" de ${e.autor || 'otro usuario'} como moderación. Se le va a avisar.`;
+      if (!(await confirmar(puedeEditar ? 'Eliminar ejercicio' : 'Moderar ejercicio', aviso, 'Eliminar', true))) return;
+      try {
+        await api(`/ejercicios/${id}`, { method: 'DELETE' });
+        navigation.goBack();
+      } catch (err) {
+        setError(err.message);
+      }
+    };
     navigation.setOptions({
       title: e?.categoria || 'Ejercicio',
-      headerRight: puedeEditar
+      headerRight: puedeBorrar
         ? () => (
-            <Pressable onPress={() => navigation.navigate('FormEjercicio', { id })} hitSlop={10} accessibilityLabel="Editar ejercicio">
-              <Ionicons name="create-outline" size={22} color={colors.primary} />
-            </Pressable>
+            <View style={{ flexDirection: 'row', gap: 18 }}>
+              {puedeEditar ? (
+                <Pressable onPress={() => navigation.navigate('FormEjercicio', { id })} hitSlop={10} accessibilityLabel="Editar ejercicio">
+                  <Ionicons name="create-outline" size={22} color={colors.primary} />
+                </Pressable>
+              ) : null}
+              <Pressable onPress={borrarEjercicio} hitSlop={10} accessibilityLabel={puedeEditar ? 'Eliminar ejercicio' : 'Eliminar ejercicio (moderación)'}>
+                <Ionicons name={puedeEditar ? 'trash-outline' : 'shield-outline'} size={21} color={colors.danger} />
+              </Pressable>
+            </View>
           )
         : undefined,
     });
-  }, [navigation, e, puedeEditar, colors, id]);
+  }, [navigation, e, puedeEditar, puedeBorrar, colors, id]);
 
   const valorar = async (puntaje) => {
     try {
@@ -68,6 +90,8 @@ export default function ExerciseDetailScreen({ route, navigation }) {
     try { await api(`/comentarios/${c.id}`, { method: 'DELETE' }); com.recargar(); } catch (err) { setError(err.message); }
   };
 
+  const verPerfil = (idUsuario) => navigation.navigate('PerfilPublico', { id: idUsuario });
+
   if (ej.cargando) return <Loading />;
   if (ej.error && !e) return <Screen edges={[]}><ErrorEstado error={ej.error} onRetry={ej.recargar} /></Screen>;
 
@@ -94,7 +118,11 @@ export default function ExerciseDetailScreen({ route, navigation }) {
           </View>
           <Stars value={e.miValoracion || 0} onChange={valorar} size={24} />
         </Row>
-        {e.autor ? <T muted size={12.5} style={{ marginTop: 10 }}>Creado por {e.autor}</T> : null}
+        {e.autor ? (
+          <Pressable onPress={() => navigation.navigate('PerfilPublico', { id: e.creadoPor })} style={{ marginTop: 10 }} hitSlop={6}>
+            <T muted size={12.5}>Aportado por <T size={12.5} weight="700" color={colors.primary}>{e.autor}</T>{puedeEditar ? ' (vos)' : ''}</T>
+          </Pressable>
+        ) : null}
       </Card>
 
       <H2 style={{ marginTop: 22, marginBottom: 10 }}>Comentarios {com.data ? `(${com.data.reduce((n, c) => n + 1 + c.respuestas.length, 0)})` : ''}</H2>
@@ -120,10 +148,10 @@ export default function ExerciseDetailScreen({ route, navigation }) {
       <View style={{ gap: 10 }}>
         {com.data?.map((c) => (
           <Card key={c.id} style={{ padding: 14 }}>
-            <Comentario c={c} onResponder={() => setRespondiendo(c)} onBorrar={() => borrar(c)} />
+            <Comentario c={c} idAutorEjercicio={e.creadoPor} onPerfil={verPerfil} onResponder={() => setRespondiendo(c)} onBorrar={() => borrar(c)} />
             {c.respuestas.map((r) => (
               <View key={r.id} style={{ marginTop: 12, marginLeft: 18, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: colors.border }}>
-                <Comentario c={r} onBorrar={() => borrar(r)} />
+                <Comentario c={r} idAutorEjercicio={e.creadoPor} onPerfil={verPerfil} onBorrar={() => borrar(r)} />
               </View>
             ))}
           </Card>
@@ -133,15 +161,17 @@ export default function ExerciseDetailScreen({ route, navigation }) {
   );
 }
 
-function Comentario({ c, onResponder, onBorrar }) {
+function Comentario({ c, idAutorEjercicio, onPerfil, onResponder, onBorrar }) {
   const { colors } = useTheme();
-  const rolColor = { profesor: colors.ai, admin: colors.warning }[c.autor.rol];
   return (
     <View>
       <Row gap={8}>
-        <Avatar uri={c.autor.avatar} nombre={c.autor.nombre} size={28} />
-        <T weight="700" size={13.5}>{c.autor.nombre}</T>
-        {rolColor ? <Chip label={c.autor.rol} color={rolColor} /> : null}
+        <Pressable onPress={() => onPerfil(c.autor.id)} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }} accessibilityLabel={`Ver perfil de ${c.autor.nombre}`}>
+          <Avatar uri={c.autor.avatar} nombre={c.autor.nombre} size={28} />
+          <T weight="700" size={13.5} numberOfLines={1} style={{ flexShrink: 1 }}>{c.autor.nombre}</T>
+        </Pressable>
+        {c.autor.id === idAutorEjercicio ? <Chip label="Autor" color={colors.ai} /> : null}
+        {c.autor.rol === 'superadmin' ? <Chip label="Superadmin" color={colors.warning} /> : null}
         <T muted size={11.5} style={{ marginLeft: 'auto' }}>{fechaRelativa(c.creadoEn)}</T>
       </Row>
       <T size={14} style={{ marginTop: 6, lineHeight: 20 }}>{c.texto}</T>

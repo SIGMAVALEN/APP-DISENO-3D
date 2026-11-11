@@ -20,18 +20,17 @@ import SettingsScreen from './screens/SettingsScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import ManageScreen from './screens/admin/ManageScreen';
 import ExerciseFormScreen from './screens/admin/ExerciseFormScreen';
+import PublicProfileScreen from './screens/PublicProfileScreen';
 
 export const navigationRef = createNavigationContainerRef();
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const ICONOS = { Inicio: 'home', Simulador: 'cube', Ranking: 'podium', Gestion: 'construct', Perfil: 'person' };
+const ICONOS = { Inicio: 'home', Simulador: 'cube', Ranking: 'podium', Gestion: 'add-circle', Perfil: 'person' };
 
 function Tabs() {
   const { colors } = useTheme();
-  const { usuario } = useAuth();
-  const docente = usuario.rol === 'profesor' || usuario.rol === 'admin';
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -46,7 +45,7 @@ function Tabs() {
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Simulador" component={SimulatorScreen} />
       <Tab.Screen name="Ranking" component={RankingScreen} />
-      {docente ? <Tab.Screen name="Gestion" component={ManageScreen} options={{ title: 'Gestión' }} /> : null}
+      <Tab.Screen name="Gestion" component={ManageScreen} options={{ title: 'Aportar' }} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -89,6 +88,7 @@ export default function Navigation({ onReady }) {
             <Stack.Screen name="Notificaciones" component={NotificationsScreen} />
             <Stack.Screen name="Configuracion" component={SettingsScreen} options={{ title: 'Configuración' }} />
             <Stack.Screen name="FormEjercicio" component={ExerciseFormScreen} options={{ title: 'Ejercicio' }} />
+            <Stack.Screen name="PerfilPublico" component={PublicProfileScreen} options={{ title: 'Perfil' }} />
           </>
         )}
       </Stack.Navigator>

@@ -11,7 +11,9 @@ import { notificar, notificarVarios } from '../services/notifications.js';
 const router = Router();
 router.use(requireAuth);
 
-const DOCENTES = ['profesor', 'admin'];
+// Permisos (estilo GitHub): cualquier usuario aporta ejercicios; solo su autor los edita;
+// el autor o el superadmin los borran. Las categorías las administra el superadmin.
+const esSuper = (req) => req.user.rol === 'superadmin';
 
 // ===================== CATEGORÍAS =====================
 const categoriaSchema = z.object({
@@ -28,13 +30,13 @@ router.get('/categorias', async (_req, res) => {
   res.json(rows.map((c) => ({ id: Number(c.id_categoria), nombre: c.nombre, descripcion: c.descripcion, icono: c.icono, totalEjercicios: Number(c.total_ejercicios) })));
 });
 
-router.post('/categorias', requireRole(...DOCENTES), async (req, res) => {
+router.post('/categorias', requireRole('superadmin'), async (req, res) => {
   const d = validate(categoriaSchema, req.body);
   const { lastId } = await run('INSERT INTO CATEGORIA (nombre, descripcion, icono) VALUES (?,?,?)', [d.nombre, d.descripcion, d.icono]);
   res.status(201).json({ id: lastId, ...d });
 });
 
-router.put('/categorias/:id', requireRole(...DOCENTES), async (req, res) => {
+router.put('/categorias/:id', requireRole('superadmin'), async (req, res) => {
   const id = idParam(req.params.id);
   const d = validate(categoriaSchema, req.body);
   const r = await run('UPDATE CATEGORIA SET nombre = ?, descripcion = ?, icono = ? WHERE id_categoria = ?', [d.nombre, d.descripcion, d.icono, id]);
@@ -42,7 +44,7 @@ router.put('/categorias/:id', requireRole(...DOCENTES), async (req, res) => {
   res.json({ id, ...d });
 });
 
-router.delete('/categorias/:id', requireRole('admin'), async (req, res) => {
+router.delete('/categorias/:id', requireRole('superadmin'), async (req, res) => {
   const id = idParam(req.params.id);
   const r = await run('DELETE FROM CATEGORIA WHERE id_categoria = ?', [id]);
   if (!r.changes) throw new HttpError(404, 'La categoría no existe');
@@ -109,7 +111,7 @@ router.get('/ejercicios/:id', async (req, res) => {
   res.json({ ...mapEjercicio(e), miValoracion: mia ? Number(mia.puntaje) : null });
 });
 
-router.post('/ejercicios', requireRole(...DOCENTES), async (req, res) => {
+router.post('/ejercicios', async (req, res) => {
   const d = validate(ejercicioSchema, req.body);
   const cat = await get('SELECT nombre FROM CATEGORIA WHERE id_categoria = ?', [d.idCategoria]);
   if (!cat) throw new HttpError(400, 'La categoría elegida no existe', { idCategoria: 'La categoría no existe' });
@@ -118,10 +120,10 @@ router.post('/ejercicios', requireRole(...DOCENTES), async (req, res) => {
      VALUES (?,?,?,?,?,?,?,?)`,
     [d.idCategoria, d.titulo, d.descripcion, d.dificultad, d.xpRecompensa, JSON.stringify(d.estadoInicial), JSON.stringify(d.estadoObjetivo), req.user.id]
   );
-  // Evento relevante → notificación a todos los estudiantes.
-  const estudiantes = await all("SELECT id_usuario FROM USUARIO WHERE rol = 'estudiante'");
+  // Evento relevante → notificación a toda la comunidad (menos al autor).
+  const comunidad = await all('SELECT id_usuario FROM USUARIO WHERE id_usuario != ?', [req.user.id]);
   await notificarVarios(
-    estudiantes.map((s) => Number(s.id_usuario)),
+    comunidad.map((s) => Number(s.id_usuario)),
     '🧊 Nuevo ejercicio disponible',
     `${req.user.nombre} publicó "${d.titulo}" en ${cat.nombre} (${d.dificultad}, +${d.xpRecompensa} XP).`,
     'ejercicio',
@@ -131,17 +133,17 @@ router.post('/ejercicios', requireRole(...DOCENTES), async (req, res) => {
   res.status(201).json(mapEjercicio(e));
 });
 
-async function puedeEditar(req, id) {
-  const e = await get('SELECT creado_por FROM EJERCICIO WHERE id_ejercicio = ?', [id]);
+async function ejercicioExistente(id) {
+  const e = await get('SELECT creado_por, titulo FROM EJERCICIO WHERE id_ejercicio = ?', [id]);
   if (!e) throw new HttpError(404, 'El ejercicio no existe');
-  if (req.user.rol !== 'admin' && Number(e.creado_por) !== req.user.id) {
-    throw new HttpError(403, 'Solo podés modificar los ejercicios que creaste');
-  }
+  return e;
 }
 
-router.put('/ejercicios/:id', requireRole(...DOCENTES), async (req, res) => {
+router.put('/ejercicios/:id', async (req, res) => {
   const id = idParam(req.params.id);
-  await puedeEditar(req, id);
+  const actual = await ejercicioExistente(id);
+  // Editar: solo el autor (ni siquiera el superadmin cambia el trabajo de otro).
+  if (Number(actual.creado_por) !== req.user.id) throw new HttpError(403, 'Solo podés editar los ejercicios que creaste');
   const d = validate(ejercicioSchema, req.body);
   await run(
     `UPDATE EJERCICIO SET id_categoria = ?, titulo = ?, descripcion = ?, dificultad = ?, xp_recompensa = ?, estado_inicial_json = ?, estado_objetivo_json = ?
@@ -152,10 +154,16 @@ router.put('/ejercicios/:id', requireRole(...DOCENTES), async (req, res) => {
   res.json(mapEjercicio(e));
 });
 
-router.delete('/ejercicios/:id', requireRole(...DOCENTES), async (req, res) => {
+router.delete('/ejercicios/:id', async (req, res) => {
   const id = idParam(req.params.id);
-  await puedeEditar(req, id);
+  const e = await ejercicioExistente(id);
+  const esAutor = Number(e.creado_por) === req.user.id;
+  // Borrar: el autor, o el superadmin como moderación.
+  if (!esAutor && !esSuper(req)) throw new HttpError(403, 'Solo podés eliminar los ejercicios que creaste');
   await run('DELETE FROM EJERCICIO WHERE id_ejercicio = ?', [id]);
+  if (!esAutor && e.creado_por) {
+    await notificar(Number(e.creado_por), '🛡️ Ejercicio moderado', `Un superadmin eliminó tu ejercicio "${e.titulo}".`, 'moderacion');
+  }
   res.json({ ok: true });
 });
 
@@ -181,7 +189,7 @@ router.get('/ejercicios/:id/comentarios', async (req, res) => {
     texto: k.texto,
     creadoEn: k.creado_en,
     autor: { id: Number(k.id_usuario), nombre: k.nombre, rol: k.rol, avatar: k.avatar },
-    puedeBorrar: Number(k.id_usuario) === req.user.id || req.user.rol !== 'estudiante',
+    puedeBorrar: Number(k.id_usuario) === req.user.id || esSuper(req),
   }));
   // Árbol de un nivel: comentarios raíz con sus respuestas.
   const raices = items.filter((i) => !i.idPadre).map((r) => ({ ...r, respuestas: items.filter((i) => i.idPadre === r.id) }));
@@ -217,8 +225,8 @@ router.delete('/comentarios/:id', async (req, res) => {
   const id = idParam(req.params.id);
   const k = await get('SELECT id_usuario FROM COMENTARIO WHERE id_comentario = ?', [id]);
   if (!k) throw new HttpError(404, 'El comentario no existe');
-  // Moderación: el autor, profesores y admins pueden borrar.
-  if (Number(k.id_usuario) !== req.user.id && req.user.rol === 'estudiante') throw new HttpError(403, 'No podés borrar comentarios de otros usuarios');
+  // El autor del comentario o el superadmin (moderación).
+  if (Number(k.id_usuario) !== req.user.id && !esSuper(req)) throw new HttpError(403, 'No podés borrar comentarios de otros usuarios');
   await run('DELETE FROM COMENTARIO WHERE id_comentario = ?', [id]);
   res.json({ ok: true });
 });
@@ -242,12 +250,15 @@ router.put('/ejercicios/:id/valoracion', async (req, res) => {
 router.get('/ranking', async (req, res) => {
   const rows = await all(
     `SELECT u.id_usuario, u.nombre, u.avatar, u.xp_total, u.nivel, u.racha_actual,
-            (SELECT COUNT(*) FROM PROGRESO_USUARIO p WHERE p.id_usuario = u.id_usuario AND p.completado = 1) AS completados
-       FROM USUARIO u WHERE u.rol = 'estudiante' ORDER BY u.xp_total DESC, u.id_usuario ASC LIMIT 20`
+            (SELECT COUNT(*) FROM PROGRESO_USUARIO p WHERE p.id_usuario = u.id_usuario AND p.completado = 1) AS completados,
+            (SELECT COUNT(*) FROM EJERCICIO e WHERE e.creado_por = u.id_usuario) AS aportes,
+            (SELECT COUNT(*) FROM SALUDO s WHERE s.id_para = u.id_usuario) AS saludos
+       FROM USUARIO u ORDER BY u.xp_total DESC, u.id_usuario ASC LIMIT 30`
   );
   res.json(rows.map((u, i) => ({
     posicion: i + 1, id: Number(u.id_usuario), nombre: u.nombre, avatar: u.avatar, xp: Number(u.xp_total),
-    nivel: Number(u.nivel), racha: Number(u.racha_actual), completados: Number(u.completados), soyYo: Number(u.id_usuario) === req.user.id,
+    nivel: Number(u.nivel), racha: Number(u.racha_actual), completados: Number(u.completados),
+    aportes: Number(u.aportes), saludos: Number(u.saludos), soyYo: Number(u.id_usuario) === req.user.id,
   })));
 });
 

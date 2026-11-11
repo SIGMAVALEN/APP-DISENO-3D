@@ -25,9 +25,9 @@ blendgo/
 | **3.1 Autenticación** | Registro, login, logout, recuperar y restablecer contraseña (código de 6 dígitos por email, vence en 15 min, máx. 5 intentos), sesión persistente, contraseñas con **bcrypt**, **JWT** guardado cifrado con `expo-secure-store`. Al cambiar la contraseña se invalidan los demás tokens (`token_version`). Rate-limit contra fuerza bruta. |
 | **Social login** | **Google** (`@react-native-google-signin`, token verificado en el backend con `google-auth-library`). |
 | **3.2 Home** | Dashboard con banner de nivel/XP animado, racha, “continuá donde quedaste”, ejercicios por categoría con filtro de dificultad y estado Pendiente/Completado. |
-| **3.3 ABM** | Ejercicios (alta/baja/modificación/consulta con vista previa 3D) y Categorías. Usuarios (admin). |
-| **3.4 Roles** | `estudiante`, `profesor`, `admin`. Permisos controlados en el **backend** (`requireRole`) — un profesor solo edita sus ejercicios; solo el admin borra categorías y gestiona usuarios. |
-| **3.5 Interacción** | Comentarios con respuestas, valoraciones de 1 a 5 estrellas, ranking. Las respuestas notifican al autor. |
+| **3.3 ABM** | Ejercicios (alta/baja/modificación/consulta con vista previa 3D, cualquier usuario), Categorías y Usuarios (superadmin). |
+| **3.4 Roles** | `usuario` y `superadmin`, estilo GitHub: cualquiera aporta ejercicios; **solo el autor** los edita; el autor o el superadmin los borran (al moderar, se avisa al autor). Comentarios: los borra su autor o el superadmin. Categorías y usuarios: solo superadmin. Todo controlado en el **backend**. |
+| **3.5 Interacción** | Comentarios con respuestas, valoraciones de 1 a 5 estrellas, ranking y **perfil público con saludos prefijados** (8 emojis/mensajes de una lista cerrada, máx. 5 por día a la misma persona). Respuestas y saludos generan notificación. |
 | **3.6 Cuenta** | Ver datos, editar nombre y foto, cambiar/crear contraseña, preferencias de tema y notificaciones, cerrar sesión, cerrar en todos los dispositivos, eliminar cuenta. |
 | **3.7 Tema** | Claro, oscuro y del sistema; se guarda en el dispositivo y en la cuenta. |
 | **3.8 Notificaciones** | Push con Expo Push Service (nuevo ejercicio, respuestas, subida de nivel, insignias, cambio de rol, recordatorio de racha) + bandeja dentro de la app + recordatorio local diario. |
@@ -52,9 +52,11 @@ blendgo/
 
 | Rol | Email | Contraseña |
 |---|---|---|
-| Estudiante | alumno@blendgo.app | Alumno123! |
-| Profesor | profe@blendgo.app | Profe123! |
-| Administrador | admin@blendgo.app | Admin123! |
+| Usuario | alumno@blendgo.app | Alumno123! |
+| Usuario | profe@blendgo.app | Profe123! |
+| Superadmin | admin@blendgo.app | Admin123! |
+
+Si tu base ya tenía el esquema anterior (estudiante/profesor/admin), al arrancar el backend se migra solo: `admin` → `superadmin`, el resto → `usuario`, sin perder progreso ni ejercicios.
 
 ---
 
@@ -138,6 +140,7 @@ Render free se duerme tras 15 min sin tráfico. El workflow `.github/workflows/t
  AsyncStorage (tema, cola offline)        │  routes/auth.js      ── Google (verifica idToken)
  Visor 3D SVG + controles TRS             │  routes/catalogo.js  ── ABM, validar, comentarios
  Chat IA  ──── POST /api/ia/chat ───────▶ │  routes/usuarios.js  ── cuenta, notifs, IA, admin
+ Perfil público / saludos ──────────────▶ │  routes/comunidad.js ── perfil, saludos prefijados
      ◀── { respuesta, acciones, estado }  │  services/ai.js      ── Gemini (Function Calling)
  expo-notifications ◀── push ──────────── │  services/notifications.js ── Expo Push Service
                                           │  services/jobs.js    ── node-cron / cron externo
@@ -148,15 +151,16 @@ Render free se duerme tras 15 min sin tráfico. El workflow `.github/workflows/t
 
 **Validación de ejercicios**: la app envía el estado; el servidor lo compara con el objetivo (tolerancias: 0.15 u, 3°, 0.06), otorga XP una sola vez, recalcula nivel, racha e insignias y genera notificaciones.
 
-**Endpoints principales**: `POST /api/auth/{register,login,google,forgot,reset,logout,logout-all,push-token}`, `GET /api/auth/me`, `GET|POST|PUT|DELETE /api/categorias`, `/api/ejercicios`, `POST /api/ejercicios/:id/validar`, `GET|POST /api/ejercicios/:id/comentarios`, `PUT /api/ejercicios/:id/valoracion`, `GET /api/ranking`, `PATCH|DELETE /api/me`, `POST /api/me/password`, `GET /api/me/estadisticas`, `GET /api/notificaciones`, `POST /api/ia/chat`, `GET /api/admin/*`.
+**Endpoints principales**: `POST /api/auth/{register,login,google,forgot,reset,logout,logout-all,push-token}`, `GET /api/auth/me`, `GET|POST|PUT|DELETE /api/categorias`, `/api/ejercicios`, `POST /api/ejercicios/:id/validar`, `GET|POST /api/ejercicios/:id/comentarios`, `PUT /api/ejercicios/:id/valoracion`, `GET /api/ranking`, `GET /api/usuarios/:id/perfil`, `POST /api/usuarios/:id/saludos`, `GET /api/me/saludos`, `PATCH|DELETE /api/me`, `POST /api/me/password`, `GET /api/me/estadisticas`, `GET /api/notificaciones`, `POST /api/ia/chat`, `GET /api/admin/*`.
 
 ### Guion sugerido para la defensa
 1. Abrir la web pública → mostrar descarga e instrucciones.
 2. Crear un usuario nuevo en el APK → cerrar sesión → “Olvidé mi contraseña” → código por email → entrar.
 3. Hacer “Primer paso en X”: validar mal (pistas) → corregir → +50 XP e insignia.
 4. Pedirle a Blendy “giralo 90 en Y” y “¿cuánta XP tengo?”.
-5. Entrar como **profe** → Gestión → publicar ejercicio → el alumno recibe la push.
-6. Como alumno intentar editar: no aparece; mostrar con curl que el backend responde **403**.
-7. Entrar como **admin** → cambiar el rol de un usuario.
-8. Modo avión → validar un ejercicio → volver la red → se sincroniza solo.
-9. Cambiar a tema claro.
+5. Con una cuenta → **Aportar** → publicar ejercicio → la otra cuenta recibe la notificación.
+6. Con la otra cuenta intentar editarlo: no aparece el botón, y con curl el backend responde **403**.
+7. **Ranking** → tocar a un usuario → mandarle 🧠 ¡Genio! → le llega la notificación.
+8. Entrar como **superadmin** → borrar el ejercicio de otro (moderación) → el autor recibe el aviso.
+9. Modo avión → validar un ejercicio → volver la red → se sincroniza solo.
+10. Cambiar a tema claro.
