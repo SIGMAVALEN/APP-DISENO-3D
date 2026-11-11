@@ -25,7 +25,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "permissions": ["android.permission.POST_NOTIFICATIONS"]
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -57,8 +60,9 @@
     "extra": {
       "apiUrl": "https://blendgo-api.onrender.com",
       "eas": {
-        "projectId": ""
+        "projectId": "486c5667-ae54-49c8-b121-415c73578b97"
       }
-    }
+    },
+    "owner": "valensigmaprime6767"
   }
 }

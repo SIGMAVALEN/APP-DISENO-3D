@@ -12,16 +12,16 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://blendgo-api.onrender.com",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": ""
+        "EXPO_PUBLIC_API_URL": "https://app-diseno-3d-1.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "270302237226-0l65fddaem9cgpuedev6i3p0uob1b0k7.apps.googleusercontent.com "
       }
     },
     "production": {
       "autoIncrement": true,
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://blendgo-api.onrender.com",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": ""
+        "EXPO_PUBLIC_API_URL": "https://app-diseno-3d-1.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "270302237226-0l65fddaem9cgpuedev6i3p0uob1b0k7.apps.googleusercontent.com "
       }
     }
   }
