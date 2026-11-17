@@ -36,7 +36,7 @@ blendgo/
 | **3.11 Validaciones y errores** | Validación en cliente y en servidor (zod) con mensajes por campo, credenciales inválidas, registros inexistentes (404), operaciones no autorizadas (401/403), sin conexión, timeouts, errores 5xx, estados de carga y reintento. |
 | **3.12 Seguridad** | Helmet, CORS, rate-limit, JWT con expiración, roles en backend, la XP se calcula **en el servidor** (no se puede hacer trampa), secretos solo en variables de entorno, el tutor IA no deja que un estudiante consulte datos de otros. |
 | **7 Distribución** | APK con EAS Build (perfil `preview`). |
-| **8 Web pública** | `backend/public` (servida en la raíz del backend): descripción, problema, funciones, público, descarga del APK + QR, instrucciones y usuarios de prueba. |
+| **8 Web pública** | `backend/public` (servida en la raíz del backend): descripción, problema, funciones y público. En `/descargar`: descarga del APK + QR, instalación en 4 pasos, guía de uso con capturas, usuarios de prueba y preguntas frecuentes. |
 
 **Extras (“la vara”)**: tutor IA con Function Calling, visor 3D propio con cámara orbital, insignias, rachas, ranking, modo offline con sincronización, tests automáticos de la API.
 

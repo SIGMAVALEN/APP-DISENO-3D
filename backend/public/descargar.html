@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Descargar BlendGO!</title>
+  <meta name="description" content="Descargá la app de BlendGO! para Android, instalala en 4 pasos y aprendé a usarla." />
+  <link rel="icon" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="marca" href="/"><img src="logo.png" alt="" width="32" height="32" /> BlendGO!</a>
+    <nav>
+      <a href="#instalar">Instalar</a>
+      <a href="#usar">Cómo usarla</a>
+      <a href="#prueba">Usuarios de prueba</a>
+      <a href="#ayuda">Ayuda</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Descarga -->
+    <section class="hero-descarga">
+      <div>
+        <p class="etiqueta">Android · Gratis</p>
+        <h1>Descargá <span>BlendGO!</span></h1>
+        <p class="lead">Aprendé a mover, rotar y escalar objetos en 3D con ejercicios cortos, XP y un tutor IA que entiende lo que le pedís.</p>
+        <div class="cta">
+          <a class="btn btn-primario btn-grande" data-apk href="#instalar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+            Descargar APK
+          </a>
+        </div>
+        <ul class="chips">
+          <li>Android 7.0 o superior</li>
+          <li>~80 MB libres</li>
+          <li>Necesita internet</li>
+        </ul>
+        <p class="nota" id="apk-nota"></p>
+        <p class="estado" id="estado">Comprobando el servidor…</p>
+      </div>
+      <figure class="qr">
+        <img id="qr" alt="Código QR para descargar la app" width="200" height="200" />
+        <figcaption>¿Estás en la compu? Escaneá con la cámara del celular.</figcaption>
+      </figure>
+    </section>
+
+    <!-- Instalación -->
+    <section id="instalar" class="bloque">
+      <h2>Instalala en 4 pasos</h2>
+      <ol class="pasos-grid">
+        <li class="card">
+          <span class="num">1</span>
+          <h3>Descargá el archivo</h3>
+          <p>Abrí esta página <b>desde el celular</b> y tocá <b>Descargar APK</b>. Si el navegador avisa que el archivo puede ser dañino, tocá <b>Descargar de todas formas</b>: es normal para apps que no vienen de Play Store.</p>
+        </li>
+        <li class="card">
+          <span class="num">2</span>
+          <h3>Abrilo</h3>
+          <p>Cuando termine, tocá la notificación de descarga o buscá <code>BlendGO.apk</code> en la carpeta <b>Descargas</b>.</p>
+        </li>
+        <li class="card">
+          <span class="num">3</span>
+          <h3>Dale permiso</h3>
+          <p>Android te va a pedir permiso para <b>instalar apps desconocidas</b> desde el navegador. Tocá <b>Configuración</b>, activá <b>Permitir de esta fuente</b> y volvé atrás.</p>
+        </li>
+        <li class="card">
+          <span class="num">4</span>
+          <h3>Instalá y abrí</h3>
+          <p>Tocá <b>Instalar</b>. Si aparece Play Protect, tocá <b>Más detalles → Instalar de todas formas</b>. Al terminar, tocá <b>Abrir</b>.</p>
+        </li>
+      </ol>
+      <p class="aviso">💡 La primera vez que abrís la app puede tardar hasta un minuto en conectar: el servidor gratuito “se duerme” cuando nadie lo usa. Después anda rápido.</p>
+    </section>
+
+    <!-- Uso -->
+    <section id="usar" class="bloque">
+      <h2>Cómo usarla</h2>
+      <p class="intro">Un recorrido por lo principal, con capturas reales de la app.</p>
+
+      <article class="guia">
+        <img class="telefono" src="img/login.jpg" alt="Pantalla de inicio de sesión de BlendGO!" width="390" height="844" loading="lazy" />
+        <div>
+          <span class="num">1</span>
+          <h3>Creá tu cuenta</h3>
+          <p>Tocá <b>“Creá una”</b> y completá nombre, email y una contraseña de al menos 8 caracteres con letras y números. También podés entrar con <b>Continuar con Google</b>.</p>
+          <p class="sub">¿Te olvidaste la contraseña? Tocá <b>“¿Olvidaste tu contraseña?”</b>: te llega un código de 6 dígitos por email.</p>
+        </div>
+      </article>
+
+      <article class="guia">
+        <img class="telefono" src="img/inicio.jpg" alt="Pantalla de inicio con nivel, XP y lista de ejercicios" width="390" height="844" loading="lazy" />
+        <div>
+          <span class="num">2</span>
+          <h3>Elegí un ejercicio</h3>
+          <p>En <b>Inicio</b> ves tu nivel, tu XP y tu racha de días. Abajo están los ejercicios, agrupados por tema (Traslación, Rotación, Escalado y Combinado) y con filtro por dificultad.</p>
+          <p class="sub">Cada ejercicio dice si está <b>Pendiente</b> o <b>Completado</b>, cuánta XP da y quién lo creó.</p>
+        </div>
+      </article>
+
+      <article class="guia">
+        <img class="telefono" src="img/simulador.jpg" alt="Simulador 3D con el cubo, el objetivo punteado y los controles" width="390" height="844" loading="lazy" />
+        <div>
+          <span class="num">3</span>
+          <h3>Transformá el cubo</h3>
+          <p>En el simulador, el <b>cubo violeta</b> es el tuyo y las <b>líneas verdes punteadas</b> marcan dónde tiene que quedar.</p>
+          <ul class="lista">
+            <li>Elegí <b>Mover</b>, <b>Rotar</b> o <b>Escalar</b> arriba de los controles.</li>
+            <li>Usá los botones <b>− / +</b> o el slider de cada eje: <span class="eje x">X</span> <span class="eje y">Y</span> <span class="eje z">Z</span>.</li>
+            <li>Arrastrá el visor con el dedo para girar la cámara, y usá los botones de la derecha para acercar o cambiar de vista.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="guia">
+        <img class="telefono" src="img/blendy.jpg" alt="Chat con Blendy, el tutor IA" width="390" height="844" loading="lazy" />
+        <div>
+          <span class="num">4</span>
+          <h3>Pedile ayuda a Blendy</h3>
+          <p>Tocá el botón verde <b>Blendy</b> para abrir el chat con el tutor IA. Le podés escribir como le hablarías a una persona y <b>mueve el cubo por vos</b>:</p>
+          <ul class="ejemplos">
+            <li>“Giralo 45 grados en X”</li>
+            <li>“Subilo 2 unidades”</li>
+            <li>“Escalalo al doble”</li>
+            <li>“¿Cuánta XP tengo?”</li>
+            <li>“Dame una pista”</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="guia">
+        <img class="telefono" src="img/logrado.jpg" alt="Mensaje de ejercicio logrado con XP ganada e insignia" width="390" height="844" loading="lazy" />
+        <div>
+          <span class="num">5</span>
+          <h3>Validá y sumá XP</h3>
+          <p>Cuando el cubo coincida con el objetivo, tocá <b>Validar ejercicio</b>. Si está bien, sumás XP, subís de nivel y desbloqueás insignias. Si no, te dice qué eje revisar.</p>
+          <p class="sub">¿Sin internet? Igual podés validar: el intento se guarda y se sincroniza solo cuando vuelve la conexión.</p>
+        </div>
+      </article>
+
+      <article class="guia">
+        <img class="telefono" src="img/aportar.jpg" alt="Formulario para crear un ejercicio nuevo" width="390" height="844" loading="lazy" />
+        <div>
+          <span class="num">6</span>
+          <h3>Aportá tus propios ejercicios</h3>
+          <p>En la pestaña <b>Aportar</b> creás desafíos para la comunidad: título, consigna, categoría, dificultad, XP y los estados 3D inicial y objetivo, con vista previa en vivo.</p>
+          <p class="sub">Como en GitHub: todos pueden hacer tu ejercicio, pero <b>solo vos</b> podés editarlo o borrarlo.</p>
+        </div>
+      </article>
+
+      <article class="guia">
+        <img class="telefono" src="img/saludos.jpg" alt="Perfil público con los saludos para mandar" width="390" height="844" loading="lazy" />
+        <div>
+          <span class="num">7</span>
+          <h3>Saludá a la comunidad</h3>
+          <p>En <b>Ranking</b> tocá a cualquier persona para ver su perfil y mandarle un saludo: 🧠 ¡Genio!, 🚀 ¡Crack total!, 🔥 ¡Estás on fire!, 🫏 ¡Burro!… Le llega una notificación.</p>
+          <p class="sub">También podés comentar y valorar con estrellas cada ejercicio. Tus datos y el tema claro u oscuro se cambian en <b>Perfil → Configuración</b>.</p>
+        </div>
+      </article>
+    </section>
+
+    <!-- Usuarios de prueba -->
+    <section id="prueba" class="bloque">
+      <h2>Usuarios de prueba</h2>
+      <p class="intro">Si querés probar sin registrarte:</p>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Rol</th><th>Email</th><th>Contraseña</th></tr></thead>
+          <tbody>
+            <tr><td>Usuario</td><td>alumno@blendgo.app</td><td>Alumno123!</td></tr>
+            <tr><td>Usuario</td><td>profe@blendgo.app</td><td>Profe123!</td></tr>
+            <tr><td>Superadmin</td><td>admin@blendgo.app</td><td>Admin123!</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="nota">El superadmin además puede borrar contenido de otros y administrar categorías y usuarios.</p>
+    </section>
+
+    <!-- Ayuda -->
+    <section id="ayuda" class="bloque">
+      <h2>Ayuda</h2>
+      <div class="faq">
+        <details>
+          <summary>Dice “App no instalada” (App not installed)</summary>
+          <p>Casi siempre es porque ya tenés instalada otra versión de BlendGO! firmada distinto. Desinstalala desde <b>Ajustes → Aplicaciones</b> y volvé a abrir el APK. Si sigue, descargalo de nuevo (puede haberse cortado la descarga) y revisá que tengas espacio libre.</p>
+        </details>
+        <details>
+          <summary>La app tarda o dice “No hay conexión con el servidor”</summary>
+          <p>Esperá un minuto y probá de nuevo: el servidor gratuito se duerme cuando no se usa y tarda en despertar. Si sigue, revisá tu conexión a internet.</p>
+        </details>
+        <details>
+          <summary>No veo el botón “Continuar con Google”</summary>
+          <p>Solo aparece en la app instalada desde el APK. Si no lo ves, entrá con email y contraseña.</p>
+        </details>
+        <details>
+          <summary>¿Hay versión para iPhone?</summary>
+          <p>Por ahora la app se distribuye solo para Android.</p>
+        </details>
+        <details>
+          <summary>¿Cómo actualizo la app?</summary>
+          <p>Los cambios chicos llegan solos: cerrá la app del todo y volvé a abrirla. Si sale una versión nueva del APK, descargala desde esta misma página e instalala encima.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer><a href="/">BlendGO!</a> — Proyecto Final · Construcción de Software · 6.º año</footer>
+  <script src="app.js"></script>
+</body>
+</html>
